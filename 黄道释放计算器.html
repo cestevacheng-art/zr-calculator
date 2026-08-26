@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>黄道释放计算器</title>
+<style>
+:root {
+  --night: #0D0D1A;
+  --deep: #141428;
+  --mid: #1E1E38;
+  --rim: #2C2C50;
+  --gold: #C9A84C;
+  --gold-pale: #E8D5A0;
+  --silver: #A8B4CC;
+  --text: #E8E4DC;
+  --muted: #7A7A9A;
+  --green: #6FCF97;
+  --blue: #56CCF2;
+  --yellow: #F2C94C;
+  --red: #EB5757;
+  --lb-text: #A8E6A3;
+  --lb-bg: #1A2A1A;
+  --purple: #C78FE8;
+  --orange: #F4A460;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--night);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(180deg, #0A0A18 0%, var(--deep) 100%);
+  border-bottom: 1px solid var(--gold);
+  padding: 16px;
+  text-align: center;
+}
+.header h1 { font-size: 17px; color: var(--gold-pale); font-weight: 600; letter-spacing: 0.05em; }
+.header p  { font-size: 12px; color: var(--silver); margin-top: 3px; }
+
+/* Input panel */
+.input-panel {
+  background: var(--mid);
+  padding: 14px;
+  border-bottom: 1px solid var(--rim);
+}
+.input-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-end; flex-wrap: wrap; }
+.input-group { display: flex; flex-direction: column; gap: 4px; }
+.input-group label { font-size: 10px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; }
+.input-group select,
+.input-group input[type=number] {
+  background: var(--deep);
+  border: 1px solid var(--rim);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 7px 8px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.input-group select { min-width: 90px; }
+.input-group input[type=number] { width: 72px; }
+.sign-select { min-width: 110px; }
+.btn {
+  background: var(--gold);
+  border: none;
+  border-radius: 8px;
+  color: #0D0D1A;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 20px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  width: 100%;
+  margin-top: 4px;
+}
+.btn:active { opacity: 0.8; }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--deep);
+  border-bottom: 1px solid var(--rim);
+  flex-wrap: wrap;
+  overflow-x: auto;
+}
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Cards layout for mobile */
+.cards { padding: 8px; }
+.l1-block { margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rim); }
+
+/* L1 header card */
+.l1-header {
+  background: #1A1A35;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rim);
+  cursor: pointer;
+  user-select: none;
+}
+.l1-sign { font-size: 16px; font-weight: 600; color: var(--gold-pale); }
+.l1-meta { font-size: 11px; color: var(--muted); text-align: right; }
+.l1-meta .dates { color: var(--silver); margin-top: 2px; }
+.collapse-btn { color: var(--muted); font-size: 12px; margin-left: 8px; flex-shrink: 0; }
+
+/* L2 rows */
+.l2-row {
+  background: #101020;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.l2-row.lb-row { background: #0E1E0E; }
+.l2-row.l2-post { background: #0A1A0A; }
+.l2-sign-col { min-width: 54px; }
+.l2-sign { font-size: 14px; color: #C0C8E0; font-weight: 500; }
+.l2-main { flex: 1; }
+.l2-dates { font-size: 11px; color: #7A7A9A; margin-top: 3px; }
+.l2-right { text-align: right; }
+
+/* L3 rows */
+.l3-row {
+  background: #1A1030;
+  padding: 8px 12px 8px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid rgba(180,120,220,0.5);
+}
+.l3-sign { font-size: 13px; color: #D4A0FF; min-width: 44px; font-weight: 500; }
+.l3-main { flex: 1; }
+.l3-dates { font-size: 11px; color: #8A8AAA; margin-top: 2px; }
+
+/* L4 rows */
+.l4-row {
+  background: #1A1005;
+  padding: 7px 12px 7px 32px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid rgba(255,160,80,0.5);
+}
+.l4-sign { font-size: 12px; color: #FFB060; min-width: 44px; font-weight: 500; }
+.l4-dates { font-size: 11px; color: #8A8AAA; margin-top: 2px; }
+
+/* Peak badges */
+.peak {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.peak-major { background: #1A3A2A; color: var(--green); border: 1px solid rgba(111,207,151,0.2); }
+.peak-mod   { background: #1A2A3A; color: var(--blue);  border: 1px solid rgba(86,204,242,0.2); }
+.peak-min   { background: #2A2A1A; color: var(--yellow);border: 1px solid rgba(242,201,76,0.2); }
+.peak-dec   { background: #2A1A1A; color: var(--red);   border: 1px solid rgba(235,87,87,0.2); }
+.peak-neu   { background: var(--mid); color: var(--muted); border: 1px solid rgba(168,180,204,0.15); }
+.peak-lb    { background: var(--lb-bg); color: var(--lb-text); border: 1px solid rgba(168,230,163,0.25); }
+
+/* Expand buttons */
+.expand-btn {
+  background: transparent;
+  border: 1px solid rgba(180,120,220,0.3);
+  border-radius: 3px;
+  color: var(--purple);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.l4-expand-btn {
+  background: transparent;
+  border: 1px solid rgba(255,160,80,0.3);
+  border-radius: 3px;
+  color: var(--orange);
+  font-size: 9px;
+  padding: 1px 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Current period */
+.current-mark { color: var(--gold); font-size: 10px; margin-right: 3px; }
+.is-current { outline: 1px solid rgba(201,168,76,0.4); }
+
+/* LB */
+.lb-badge {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--lb-text);
+  background: var(--lb-bg);
+  border: 1px solid rgba(168,230,163,0.25);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-style: italic;
+}
+
+/* Empty state */
+.empty { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 15px; }
+.empty .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+/* Footer note */
+.footnote {
+  padding: 12px;
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--deep);
+  border-top: 1px solid var(--rim);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+@media (min-width: 480px) {
+  .input-row { flex-wrap: nowrap; }
+  .cards { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>黄道释放计算器</h1>
+  <p>Zodiacal Releasing · L1–L4</p>
+</div>
+
+<div class="input-panel">
+  <div class="input-row">
+    <div class="input-group">
+      <label>年</label>
+      <input type="number" id="bYear" value="1987" min="1900" max="2100" style="width:72px">
+    </div>
+    <div class="input-group">
+      <label>月</label>
+      <select id="bMonth"></select>
+    </div>
+    <div class="input-group">
+      <label>日</label>
+      <select id="bDay"></select>
+    </div>
+    <div class="input-group">
+      <label>时</label>
+      <select id="bHour"></select>
+    </div>
+    <div class="input-group">
+      <label>分</label>
+      <select id="bMin"></select>
+    </div>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>释放点起始星座</label>
+      <select id="startSign" class="sign-select"></select>
+    </div>
+    <div class="input-group">
+      <label>福点星座</label>
+      <select id="fortuneSign" class="sign-select"></select>
+    </div>
+  </div>
+  <button class="btn" onclick="generate()">生成时间表</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:#6FCF97"></div>主峰(1/10宫)</div>
+  <div class="legend-item"><div class="dot" style="background:#56CCF2"></div>中峰(7宫)</div>
+  <div class="legend-item"><div class="dot" style="background:#F2C94C"></div>小峰(4宫)</div>
+  <div class="legend-item"><div class="dot" style="background:#EB5757"></div>衰落</div>
+  <div class="legend-item"><div class="dot" style="background:#A8E6A3"></div>松绑LB</div>
+</div>
+
+<div id="output">
+  <div class="empty"><div class="icon">☽</div>填入信息后点「生成时间表」</div>
+</div>
+
+<div class="footnote">
+  算法(宫神网标准): L1=小年×360天 · L2=小年×30天 · L3=小年×2.5天 · L4=小年×5小时 | 松绑:第一圈LB跳对宫,第二圈不LB续 | 起始星座请自行计算填入
+</div>
+
+<script>
+// ── Constants ──
+const SIGNS = [
+  {name:"白羊",years:15,num:1},{name:"金牛",years:8,num:2},{name:"双子",years:20,num:3},
+  {name:"巨蟹",years:25,num:4},{name:"狮子",years:19,num:5},{name:"处女",years:20,num:6},
+  {name:"天秤",years:8,num:7},{name:"天蝎",years:15,num:8},{name:"射手",years:12,num:9},
+  {name:"摩羯",years:27,num:10},{name:"水瓶",years:27,num:11},{name:"双鱼",years:12,num:12},
+];
+const SIGN_MAP = {};
+SIGNS.forEach(s => SIGN_MAP[s.name] = s);
+const SIGN_NAMES = SIGNS.map(s => s.name);
+const TOTAL = SIGNS.reduce((a,s) => a+s.years, 0); // 207
+const D_YEAR  = 360;
+const D_MONTH = 30;
+const D_L3    = 2.5;
+const H_L4    = 5;
+const MS_HOUR = 3600000;
+
+// ── Helpers ──
+function signAt(start, off) { return SIGN_NAMES[(SIGN_NAMES.indexOf(start)+off)%12]; }
+function opp(name) { return SIGN_NAMES[(SIGN_NAMES.indexOf(name)+6)%12]; }
+function fHouse(pSign, fSign) { return (SIGN_MAP[pSign].num - SIGN_MAP[fSign].num + 12)%12 + 1; }
+function peak(h) {
+  if (h===1||h===10) return {label:'主峰 ★★', cls:'peak-major'};
+  if (h===7) return {label:'中峰 ★', cls:'peak-mod'};
+  if (h===4) return {label:'小峰 ◇', cls:'peak-min'};
+  if ([3,6,9,12].includes(h)) return {label:'衰落 ▼', cls:'peak-dec'};
+  return {label:'平稳', cls:'peak-neu'};
+}
+function addDays(ms, days) { return ms + days*86400000; }
+function fmtDate(ms) {
+  const d=new Date(ms);
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+}
+function fmtTime(ms) {
+  const d=new Date(ms);
+  return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+}
+function isCur(s,e) { const n=Date.now(); return s<=n && n<e; }
+
+// ── Build dropdowns ──
+function buildSelects() {
+  const mSel = document.getElementById('bMonth');
+  for (let i=1;i<=12;i++) mSel.innerHTML += `<option value="${i}"${i===8?' selected':''}>${i}月</option>`;
+
+  const dSel = document.getElementById('bDay');
+  for (let i=1;i<=31;i++) dSel.innerHTML += `<option value="${i}"${i===7?' selected':''}>${i}日</option>`;
+
+  const hSel = document.getElementById('bHour');
+  for (let i=0;i<24;i++) hSel.innerHTML += `<option value="${i}">${String(i).padStart(2,'0')}时</option>`;
+
+  const minSel = document.getElementById('bMin');
+  [0,5,10,15,20,25,30,35,40,45,50,55].forEach(m =>
+    minSel.innerHTML += `<option value="${m}">${String(m).padStart(2,'0')}分</option>`);
+
+  ['startSign','fortuneSign'].forEach((id,idx) => {
+    const sel = document.getElementById(id);
+    SIGN_NAMES.forEach(n => {
+      const def = idx===0 ? '射手' : '双鱼';
+      sel.innerHTML += `<option value="${n}"${n===def?' selected':''}>${n}</option>`;
+    });
+  });
+}
+
+// ── Generate L1+L2 data ──
+function generate() {
+  const by = parseInt(document.getElementById('bYear').value);
+  const bm = parseInt(document.getElementById('bMonth').value);
+  const bd = parseInt(document.getElementById('bDay').value);
+  const bh = parseInt(document.getElementById('bHour').value)||0;
+  const bn = parseInt(document.getElementById('bMin').value)||0;
+  const ss = document.getElementById('startSign').value;
+  const fs = document.getElementById('fortuneSign').value;
+  if (!by||!bm||!bd) { alert('请填入出生日期'); return; }
+
+  const birthMs = Date.UTC(by, bm-1, bd, bh, bn, 0);
+  const maxMs   = Date.UTC(by+120, 0, 1);
+
+  const l1Blocks = [];
+  let curMs = birthMs;
+  let l1Sign = ss;
+
+  for (let cycle=0; cycle<50 && curMs<maxMs; cycle++) {
+    const yrs   = SIGN_MAP[l1Sign].years;
+    const days  = yrs * D_YEAR;
+    const l1Start = curMs;
+    const l1End   = addDays(l1Start, days);
+    const h1 = fHouse(l1Sign, fs);
+    const p1 = peak(h1);
+
+    const l2s = [];
+    const l2CycleDays = TOTAL * D_MONTH;
+    let l2Ms = l1Start;
+
+    // First L2 cycle
+    for (let off=0; off<12; off++) {
+      const s2 = signAt(l1Sign, off);
+      const d2 = SIGN_MAP[s2].years * D_MONTH;
+      const e2raw = addDays(l2Ms, d2);
+      const trunc = e2raw > l1End;
+      const l2End = trunc ? l1End : e2raw;
+      if (l2Ms >= l1End) break;
+      const h2 = fHouse(s2, fs);
+      l2s.push({sign:s2, dur:`${SIGN_MAP[s2].years}月${trunc?' (截)':''}`,
+                startMs:l2Ms, endMs:l2End, house:h2, pk:peak(h2), isLb:false, isPost:false});
+      l2Ms = l2End;
+      if (trunc) break;
+    }
+
+    // LB if L1 > one L2 cycle
+    if (days > l2CycleDays) {
+      const oppS = opp(l1Sign);
+      l2s.push({sign:`→ ${oppS}`, dur:'松绑', startMs:l2Ms, endMs:l2Ms,
+                house:fHouse(oppS,fs), pk:{label:'松绑 LB',cls:'peak-lb'}, isLb:true, isPost:false});
+      let lbMs = l2Ms;
+      for (let off=0; off<12; off++) {
+        const s2 = signAt(oppS, off);
+        const d2 = SIGN_MAP[s2].years * D_MONTH;
+        const e2raw = addDays(lbMs, d2);
+        const trunc = e2raw > l1End;
+        const l2End = trunc ? l1End : e2raw;
+        if (lbMs >= l1End) break;
+        const h2 = fHouse(s2, fs);
+        l2s.push({sign:s2, dur:`${SIGN_MAP[s2].years}月${trunc?' (截)':''}`,
+                  startMs:lbMs, endMs:l2End, house:h2, pk:peak(h2), isLb:false, isPost:true});
+        lbMs = l2End;
+        if (trunc) break;
+      }
+    }
+
+    l1Blocks.push({sign:l1Sign, dur:`${yrs}年`, startMs:l1Start, endMs:l1End,
+                   house:h1, pk:p1, l2s});
+    curMs = l1End;
+    l1Sign = signAt(l1Sign, 1);
+  }
+
+  window._fs = fs;
+  renderBlocks(l1Blocks);
+}
+
+// ── Render ──
+function renderBlocks(blocks) {
+  const out = document.getElementById('output');
+  out.innerHTML = '';
+  const cards = document.createElement('div');
+  cards.className = 'cards';
+
+  blocks.forEach((b, bi) => {
+    const curL1 = isCur(b.startMs, b.endMs);
+    const block = document.createElement('div');
+    block.className = 'l1-block';
+
+    // L1 header
+    const hdr = document.createElement('div');
+    hdr.className = 'l1-header' + (curL1 ? ' is-current' : '');
+    hdr.innerHTML = `
+      <div>
+        <span class="l1-sign">${curL1?'<span class="current-mark">●</span>':''}${b.sign}</span>
+        <span class="peak ${b.pk.cls}" style="margin-left:8px;font-size:9px">${b.pk.label}</span>
+      </div>
+      <div class="l1-meta">
+        <div>${b.dur} · 福点第${b.house}宫</div>
+        <div class="dates">${fmtDate(b.startMs)}<br>${fmtDate(b.endMs)}</div>
+      </div>
+      <span class="collapse-btn">▼</span>`;
+
+    const body = document.createElement('div');
+    body.id = `body-${bi}`;
+
+    hdr.addEventListener('click', () => {
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      hdr.querySelector('.collapse-btn').textContent = open ? '▶' : '▼';
+    });
+
+    block.appendChild(hdr);
+    block.appendChild(body);
+
+    // L2 rows
+    b.l2s.forEach((l2, l2i) => {
+      const curL2 = !l2.isLb && isCur(l2.startMs, l2.endMs);
+      const row = document.createElement('div');
+      row.className = 'l2-row' + (l2.isLb?' lb-row':l2.isPost?' l2-post':'') + (curL2?' is-current':'');
+
+      if (l2.isLb) {
+        row.innerHTML = `
+          <div><span class="lb-badge">松绑 LB</span></div>
+          <div class="l2-main"><span style="color:var(--lb-text);font-style:italic">${l2.sign}</span></div>
+          <div class="l2-right"><span class="peak ${l2.pk.cls}">${l2.pk.label}</span></div>`;
+      } else {
+        const l3key = `${bi}-${l2i}`;
+        if (!window._l3cache) window._l3cache = {};
+        window._l3cache[l3key] = l2;
+        row.innerHTML = `
+          <div class="l2-sign-col">
+            <div class="l2-sign">${curL2?'<span class="current-mark">●</span>':''}${l2.sign}</div>
+            <div style="font-size:11px;color:#8888AA">${l2.dur}</div>
+          </div>
+          <div class="l2-main">
+            <div style="font-size:11px;color:#9090BB">福点第${l2.house}宫</div>
+            <div class="l2-dates">${fmtDate(l2.startMs)} → ${fmtDate(l2.endMs)}</div>
+          </div>
+          <div class="l2-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            <span class="peak ${l2.pk.cls}">${l2.pk.label}</span>
+            <button class="expand-btn" id="l3btn-${l3key}" onclick="toggleL3('${l3key}',this)">▶ L3</button>
+          </div>`;
+      }
+      body.appendChild(row);
+    });
+
+    cards.appendChild(block);
+
+    // Auto-expand current L1
+    if (curL1) {
+      body.style.display = 'block';
+      hdr.querySelector('.collapse-btn').textContent = '▼';
+    } else {
+      body.style.display = 'none';
+      hdr.querySelector('.collapse-btn').textContent = '▶';
+    }
+  });
+
+  out.appendChild(cards);
+
+  // Scroll to current
+  const cur = out.querySelector('.is-current');
+  if (cur) setTimeout(() => cur.scrollIntoView({behavior:'smooth', block:'center'}), 300);
+}
+
+// ── L3 ──
+function genL3(l2Row) {
+  const fs = window._fs;
+  if (!l2Row || l2Row.isLb) return [];
+  const rawSign = l2Row.sign.replace(/\s*\(截[^)]*\)/g,'').trim();
+  if (!SIGN_MAP[rawSign]) return [];
+
+  const rows = [];
+  let ms = l2Row.startMs;
+  const endMs = l2Row.endMs;
+  let lbDone = false;
+  let curStart = rawSign;
+  const origSign = rawSign;
+  let safety = 0;
+
+  while (ms < endMs && safety++ < 500) {
+    let cycleOk = true;
+    for (let off=0; off<12; off++) {
+      if (ms >= endMs) { cycleOk=false; break; }
+      const s = signAt(curStart, off);
+      const endRaw = ms + SIGN_MAP[s].years * D_L3 * 86400000;
+      const trunc = endRaw > endMs;
+      const e = trunc ? endMs : endRaw;
+      const h = fHouse(s, fs);
+      rows.push({sign:s, dur:(((e-ms)/86400000).toFixed(1))+'天', startMs:ms, endMs:e,
+                 house:h, pk:peak(h), trunc, isLb:false});
+      ms = e;
+      if (trunc) { cycleOk=false; break; }
+    }
+    if (!cycleOk || ms >= endMs) break;
+    if (!lbDone) {
+      const os = opp(origSign);
+      rows.push({sign:'→ '+os, dur:'—', startMs:ms, endMs:ms,
+                 house:fHouse(os,fs), pk:{label:'L3松绑 LB',cls:'peak-lb'}, isLb:true});
+      curStart = os; lbDone = true;
+    } else {
+      curStart = curStart===origSign ? opp(origSign) : origSign;
+    }
+  }
+  return rows;
+}
+
+function toggleL3(key, btn) {
+  const row = btn.closest('.l2-row');
+  const body = row.parentNode;
+  const existingL3 = body.querySelectorAll(`[data-l3="${key}"]`);
+  if (existingL3.length > 0) {
+    existingL3.forEach(el => el.remove());
+    btn.textContent = '▶ L3';
+    return;
+  }
+  const l2Row = window._l3cache[key];
+  const l3rows = genL3(l2Row);
+  let insertAfter = row;
+  let l3idx = 0;
+  l3rows.forEach(l3 => {
+    const el = document.createElement('div');
+    el.setAttribute('data-l3', key);
+    const l4key = key+'-'+l3idx;
+    if (!window._l4cache) window._l4cache = {};
+    if (!l3.isLb) window._l4cache[l4key] = l3;
+
+    if (l3.isLb) {
+      el.className = 'l3-row';
+      el.innerHTML = `<div style="color:var(--lb-text);font-style:italic;font-size:11px">${l3.sign}</div>
+        <div class="l3-main"></div>
+        <span class="peak ${l3.pk.cls}" style="font-size:9px">${l3.pk.label}</span>`;
+    } else {
+      const curL3 = isCur(l3.startMs, l3.endMs);
+      el.className = 'l3-row' + (curL3?' is-current':'');
+      el.innerHTML = `
+        <div class="l3-sign">${curL3?'<span class="current-mark">●</span>':''}${l3.sign}</div>
+        <div class="l3-main">
+          <div style="font-size:11px;color:#9090BB">福点第${l3.house}宫 · ${l3.dur}</div>
+          <div class="l3-dates">${fmtDate(l3.startMs)} → ${fmtDate(l3.endMs)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <span class="peak ${l3.pk.cls}" style="font-size:9px">${l3.pk.label}</span>
+          <button class="l4-expand-btn" id="l4btn-${l4key}" onclick="toggleL4('${l4key}',this)">▶ L4</button>
+        </div>`;
+    }
+    insertAfter.insertAdjacentElement('afterend', el);
+    insertAfter = el;
+    l3idx++;
+  });
+  btn.textContent = '▼ L3';
+}
+
+// ── L4 ──
+function genL4(l3Row) {
+  const fs = window._fs;
+  if (!l3Row || l3Row.isLb) return [];
+  const rawSign = l3Row.sign.replace(/\s*\(截[^)]*\)/g,'').replace('-> ','').trim();
+  if (!SIGN_MAP[rawSign]) return [];
+
+  const rows = [];
+  let ms = l3Row.startMs;
+  const endMs = l3Row.endMs;
+  let lbDone = false;
+  let curStart = rawSign;
+  const origSign = rawSign;
+  let safety = 0;
+
+  while (ms < endMs && safety++ < 500) {
+    let cycleOk = true;
+    for (let off=0; off<12; off++) {
+      if (ms >= endMs) { cycleOk=false; break; }
+      const s = signAt(curStart, off);
+      const endRaw = ms + SIGN_MAP[s].years * H_L4 * MS_HOUR;
+      const trunc = endRaw > endMs;
+      const e = trunc ? endMs : endRaw;
+      const h = fHouse(s, fs);
+      rows.push({sign:s, dur:((e-ms)/MS_HOUR).toFixed(1)+'小时',
+                 startMs:ms, endMs:e, house:h, pk:peak(h), trunc, isLb:false});
+      ms = e;
+      if (trunc) { cycleOk=false; break; }
+    }
+    if (!cycleOk || ms >= endMs) break;
+    if (!lbDone) {
+      const os = opp(origSign);
+      rows.push({sign:'→ '+os, dur:'—', startMs:ms, endMs:ms,
+                 house:fHouse(os,fs), pk:{label:'L4松绑 LB',cls:'peak-lb'}, isLb:true});
+      curStart = os; lbDone = true;
+    } else {
+      curStart = curStart===origSign ? opp(origSign) : origSign;
+    }
+  }
+  return rows;
+}
+
+function toggleL4(key, btn) {
+  const row = btn.closest('.l3-row');
+  const body = row.parentNode;
+  const existing = body.querySelectorAll(`[data-l4="${key}"]`);
+  if (existing.length > 0) {
+    existing.forEach(el => el.remove());
+    btn.textContent = '▶ L4';
+    return;
+  }
+  const l3Row = window._l4cache && window._l4cache[key];
+  if (!l3Row) return;
+  const l4rows = genL4(l3Row);
+  let insertAfter = row;
+  l4rows.forEach(l4 => {
+    const el = document.createElement('div');
+    el.setAttribute('data-l4', key);
+    if (l4.isLb) {
+      el.className = 'l4-row';
+      el.innerHTML = `<div style="color:var(--lb-text);font-style:italic;font-size:10px">${l4.sign}</div>
+        <div style="flex:1"></div>
+        <span class="peak ${l4.pk.cls}" style="font-size:9px">${l4.pk.label}</span>`;
+    } else {
+      const curL4 = isCur(l4.startMs, l4.endMs);
+      el.className = 'l4-row' + (curL4?' is-current':'');
+      el.innerHTML = `
+        <div class="l4-sign">${curL4?'<span class="current-mark">●</span>':''}${l4.sign}</div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#9090BB">福点第${l4.house}宫 · ${l4.dur}</div>
+          <div class="l4-dates">${fmtDate(l4.startMs)} ${fmtTime(l4.startMs)} → ${fmtDate(l4.endMs)} ${fmtTime(l4.endMs)}</div>
+        </div>
+        <span class="peak ${l4.pk.cls}" style="font-size:9px">${l4.pk.label}</span>`;
+    }
+    insertAfter.insertAdjacentElement('afterend', el);
+    insertAfter = el;
+  });
+  btn.textContent = '▼ L4';
+}
+
+// ── Init ──
+buildSelects();
+generate();
+</script>
+</body>
+</html>
