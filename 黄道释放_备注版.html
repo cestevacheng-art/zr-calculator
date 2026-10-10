@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>黄道释放计算器</title>
+<style>
+:root {
+  --night: #0D0D1A; --deep: #141428; --mid: #1E1E38; --rim: #2C2C50;
+  --gold: #C9A84C; --gold-pale: #E8D5A0; --silver: #A8B4CC; --text: #E8E4DC;
+  --muted: #7A7A9A; --green: #6FCF97; --blue: #56CCF2; --yellow: #F2C94C;
+  --red: #EB5757; --lb-text: #A8E6A3; --lb-bg: #1A2A1A; --purple: #C78FE8; --orange: #F4A460;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--night); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; -webkit-text-size-adjust: 100%; }
+
+/* Header */
+.header { background: linear-gradient(180deg,#0A0A18 0%,var(--deep) 100%); border-bottom: 1px solid var(--gold); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 16px; color: var(--gold-pale); font-weight: 600; }
+.header p { font-size: 11px; color: var(--silver); margin-top: 2px; }
+.header-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-btn { background: transparent; border: 1px solid var(--rim); border-radius: 6px; color: var(--silver); font-size: 13px; padding: 5px 8px; cursor: pointer; }
+.icon-btn:active { opacity: 0.7; }
+
+/* Person bar */
+.person-bar { background: var(--mid); border-bottom: 1px solid var(--rim); padding: 8px 12px; display: flex; gap: 6px; align-items: center; overflow-x: auto; }
+.person-chip { background: var(--deep); border: 1px solid var(--rim); border-radius: 20px; color: var(--silver); font-size: 12px; padding: 4px 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.person-chip.active { background: var(--gold); color: var(--night); border-color: var(--gold); font-weight: 600; }
+.person-chip.add-btn { border-style: dashed; color: var(--muted); }
+
+/* Input panel */
+.input-panel { background: var(--mid); padding: 12px; border-bottom: 1px solid var(--rim); }
+.input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-end; flex-wrap: wrap; }
+.input-group { display: flex; flex-direction: column; gap: 3px; }
+.input-group label { font-size: 10px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; }
+.input-group select, .input-group input[type=number], .input-group input[type=text] {
+  background: var(--deep); border: 1px solid var(--rim); border-radius: 6px; color: var(--text);
+  font-size: 13px; padding: 6px 8px; outline: none; -webkit-appearance: none; appearance: none;
+}
+.input-group input[type=number] { width: 68px; }
+.input-group input[type=text] { min-width: 120px; }
+.sign-select { min-width: 100px; }
+.btn { background: var(--gold); border: none; border-radius: 8px; color: #0D0D1A; font-size: 14px; font-weight: 700; padding: 9px 20px; cursor: pointer; width: 100%; margin-top: 4px; }
+.btn:active { opacity: 0.8; }
+.btn-outline { background: transparent; border: 1px solid var(--rim); border-radius: 8px; color: var(--silver); font-size: 13px; padding: 7px 14px; cursor: pointer; }
+
+/* Legend */
+.legend { display: flex; gap: 6px; padding: 7px 12px; background: var(--deep); border-bottom: 1px solid var(--rim); flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Cards */
+.cards { padding: 8px; }
+.l1-block { margin-bottom: 14px; border-radius: 10px; overflow: hidden; border: 1px solid var(--rim); }
+.l1-header { background: #1A1A35; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--rim); cursor: pointer; user-select: none; gap: 8px; }
+.l1-sign { font-size: 15px; font-weight: 600; color: var(--gold-pale); }
+.l1-meta { font-size: 10px; color: var(--muted); text-align: right; flex-shrink: 0; }
+.l1-meta .dates { color: var(--silver); margin-top: 2px; }
+.collapse-btn { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+/* Row base */
+.l2-row { background: #101020; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: flex-start; gap: 8px; }
+.l2-row.lb-row { background: #0E1E0E; }
+.l2-row.l2-post { background: #0A1A0A; }
+.l3-row { background: #1A1030; padding: 7px 10px 7px 18px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: flex-start; gap: 8px; border-left: 3px solid rgba(180,120,220,0.4); }
+.l4-row { background: #1A1005; padding: 6px 10px 6px 28px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: flex-start; gap: 8px; border-left: 3px solid rgba(255,160,80,0.4); }
+
+/* Sign columns */
+.row-sign { min-width: 40px; flex-shrink: 0; }
+.l2-sign { font-size: 13px; color: #C0C8E0; font-weight: 500; }
+.l2-dur  { font-size: 10px; color: #8888AA; margin-top: 1px; }
+.l3-sign { font-size: 12px; color: #D4A0FF; font-weight: 500; }
+.l3-dur  { font-size: 10px; color: #8888AA; margin-top: 1px; }
+.l4-sign { font-size: 11px; color: #FFB060; font-weight: 500; }
+.l4-dur  { font-size: 10px; color: #8888AA; margin-top: 1px; }
+
+/* Row info */
+.row-info { flex: 1; min-width: 0; }
+.row-house { font-size: 10px; color: #9090BB; }
+.row-dates { font-size: 10px; color: #7A7A9A; margin-top: 2px; word-break: break-all; }
+
+/* Row right */
+.row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+/* Peak badges */
+.peak { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+.peak-major { background: #1A3A2A; color: var(--green); border: 1px solid rgba(111,207,151,0.2); }
+.peak-mod   { background: #1A2A3A; color: var(--blue);  border: 1px solid rgba(86,204,242,0.2); }
+.peak-min   { background: #2A2A1A; color: var(--yellow);border: 1px solid rgba(242,201,76,0.2); }
+.peak-dec   { background: #2A1A1A; color: var(--red);   border: 1px solid rgba(235,87,87,0.2); }
+.peak-neu   { background: var(--mid); color: var(--muted); border: 1px solid rgba(168,180,204,0.15); }
+.peak-lb    { background: var(--lb-bg); color: var(--lb-text); border: 1px solid rgba(168,230,163,0.25); }
+
+/* Buttons */
+.expand-btn { background: transparent; border: 1px solid rgba(180,120,220,0.3); border-radius: 3px; color: var(--purple); font-size: 9px; padding: 2px 5px; cursor: pointer; }
+.l4-btn     { background: transparent; border: 1px solid rgba(255,160,80,0.3); border-radius: 3px; color: var(--orange); font-size: 9px; padding: 1px 4px; cursor: pointer; }
+.note-btn   { background: transparent; border: 1px solid rgba(201,168,76,0.3); border-radius: 3px; color: var(--gold); font-size: 11px; padding: 2px 5px; cursor: pointer; }
+.note-btn.has-note { background: rgba(201,168,76,0.15); border-color: var(--gold); }
+
+/* Note display */
+.note-display { font-size: 11px; color: var(--gold-pale); background: rgba(201,168,76,0.08); border-left: 2px solid var(--gold); padding: 4px 8px; margin-top: 4px; border-radius: 0 4px 4px 0; line-height: 1.4; }
+
+/* Current */
+.current-mark { color: var(--gold); font-size: 9px; margin-right: 2px; }
+.is-current { outline: 1px solid rgba(201,168,76,0.4); }
+
+/* LB badge */
+.lb-badge { display: inline-block; font-size: 10px; color: var(--lb-text); background: var(--lb-bg); border: 1px solid rgba(168,230,163,0.25); border-radius: 3px; padding: 1px 6px; font-style: italic; }
+
+/* Empty */
+.empty { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 15px; }
+.empty .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+/* Notes summary panel */
+.notes-panel { background: var(--mid); border-top: 1px solid var(--rim); padding: 12px; display: none; }
+.notes-panel.open { display: block; }
+.notes-panel h3 { font-size: 13px; color: var(--gold); margin-bottom: 10px; }
+.note-item { padding: 8px 0; border-bottom: 1px solid var(--rim); }
+.note-item:last-child { border-bottom: none; }
+.note-meta { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.note-text { font-size: 12px; color: var(--text); }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--mid); border-radius: 16px 16px 0 0; width: 100%; max-width: 600px; padding: 20px 16px; border-top: 1px solid var(--rim); }
+.modal h3 { font-size: 14px; color: var(--gold); margin-bottom: 12px; }
+.modal textarea { width: 100%; background: var(--deep); border: 1px solid var(--rim); border-radius: 8px; color: var(--text); font-size: 14px; padding: 10px; outline: none; resize: none; min-height: 100px; font-family: inherit; }
+.modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+.modal-btns .btn { flex: 1; margin-top: 0; }
+.modal-btns .btn-del { background: var(--mid); border: 1px solid var(--red); color: var(--red); }
+.modal-btns .btn-cancel { background: var(--mid); border: 1px solid var(--rim); color: var(--silver); }
+
+/* Person modal */
+.person-modal { background: var(--mid); border-radius: 16px 16px 0 0; width: 100%; max-width: 600px; padding: 20px 16px; border-top: 1px solid var(--rim); max-height: 80vh; overflow-y: auto; }
+.person-list-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rim); gap: 10px; }
+.person-list-item:last-child { border-bottom: none; }
+.person-name { flex: 1; font-size: 14px; color: var(--text); }
+.person-del { background: transparent; border: none; color: var(--red); font-size: 16px; cursor: pointer; padding: 4px; }
+
+/* Footer */
+.footnote { padding: 10px 12px; font-size: 10px; color: var(--muted); background: var(--deep); border-top: 1px solid var(--rim); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <h1>黄道释放计算器</h1>
+    <p>Zodiacal Releasing · L1–L4</p>
+  </div>
+  <div class="header-btns">
+    <button class="icon-btn" onclick="showNotes()" title="查看所有备注">📋</button>
+    <button class="icon-btn" onclick="exportICS()" title="导出日历(.ics)">📅</button>
+    <button class="icon-btn" onclick="exportData()" title="导出备份">⬇️</button>
+    <button class="icon-btn" onclick="document.getElementById('importFile').click()" title="导入备份">⬆️</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- Person bar -->
+<div class="person-bar" id="personBar">
+  <button class="person-chip add-btn" onclick="showPersonModal()">＋ 新建</button>
+</div>
+
+<!-- Input panel -->
+<div class="input-panel">
+  <div class="input-row">
+    <div class="input-group">
+      <label>姓名</label>
+      <input type="text" id="pName" placeholder="如: Eva" style="min-width:90px">
+    </div>
+    <div class="input-group">
+      <label>年</label>
+      <input type="number" id="bYear" value="1987" min="1900" max="2100">
+    </div>
+    <div class="input-group">
+      <label>月</label>
+      <select id="bMonth"></select>
+    </div>
+    <div class="input-group">
+      <label>日</label>
+      <select id="bDay"></select>
+    </div>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>时</label>
+      <select id="bHour"></select>
+    </div>
+    <div class="input-group">
+      <label>分</label>
+      <select id="bMin"></select>
+    </div>
+    <div class="input-group">
+      <label>释放点星座</label>
+      <select id="startSign" class="sign-select"></select>
+    </div>
+    <div class="input-group">
+      <label>福点星座</label>
+      <select id="fortuneSign" class="sign-select"></select>
+    </div>
+  </div>
+  <button class="btn" onclick="generate()">生成时间表</button>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:#6FCF97"></div>主峰</div>
+  <div class="legend-item"><div class="dot" style="background:#56CCF2"></div>中峰</div>
+  <div class="legend-item"><div class="dot" style="background:#F2C94C"></div>小峰</div>
+  <div class="legend-item"><div class="dot" style="background:#EB5757"></div>衰落</div>
+  <div class="legend-item"><div class="dot" style="background:#A8E6A3"></div>松绑LB</div>
+  <div class="legend-item"><div class="dot" style="background:#C9A84C"></div>✏️备注</div>
+</div>
+
+<!-- Output -->
+<div id="output">
+  <div class="empty"><div class="icon">☽</div>填入信息后点「生成时间表」</div>
+</div>
+
+<!-- Notes summary panel -->
+<div class="notes-panel" id="notesPanel">
+  <h3>📋 所有备注</h3>
+  <div id="notesList"></div>
+</div>
+
+<div class="footnote">
+  算法(宫神网): L1=×360天 · L2=×30天 · L3=×2.5天 · L4=×5小时 | 松绑:第一圈LB跳对宫,第二圈不LB续 | ✏️可在各行添加备注,数据存于本地
+</div>
+
+<!-- Note edit modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <h3 id="noteModalTitle">添加备注</h3>
+    <textarea id="noteText" placeholder="记录这段时间发生了什么..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="closeNoteModal()">取消</button>
+      <button class="btn btn-del" id="noteDelBtn" onclick="deleteNote()" style="display:none">删除</button>
+      <button class="btn" onclick="saveNote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Person manage modal -->
+<div class="modal-overlay" id="personModal">
+  <div class="person-modal">
+    <h3 style="color:var(--gold);font-size:14px;margin-bottom:12px">管理档案</h3>
+    <div id="personList"></div>
+    <button class="btn-outline" onclick="closePersonModal()" style="width:100%;margin-top:12px">关闭</button>
+  </div>
+</div>
+
+<script>
+// ── Constants ──
+const SIGNS = [
+  {name:"白羊",years:15,num:1},{name:"金牛",years:8,num:2},{name:"双子",years:20,num:3},
+  {name:"巨蟹",years:25,num:4},{name:"狮子",years:19,num:5},{name:"处女",years:20,num:6},
+  {name:"天秤",years:8,num:7},{name:"天蝎",years:15,num:8},{name:"射手",years:12,num:9},
+  {name:"摩羯",years:27,num:10},{name:"水瓶",years:30,num:11},{name:"双鱼",years:12,num:12},
+];
+const SIGN_MAP = {};
+SIGNS.forEach(s => SIGN_MAP[s.name] = s);
+const SIGN_NAMES = SIGNS.map(s => s.name);
+const TOTAL = 210;
+const D_YEAR=360, D_MONTH=30, D_L3=2.5, H_L4=5, MS_HOUR=3600000;
+
+// ── Helpers ──
+function signAt(s,o){return SIGN_NAMES[(SIGN_NAMES.indexOf(s)+o)%12];}
+function opp(n){return SIGN_NAMES[(SIGN_NAMES.indexOf(n)+6)%12];}
+function fHouse(p,f){return (SIGN_MAP[p].num-SIGN_MAP[f].num+12)%12+1;}
+function peak(h){
+  if(h===1||h===10)return{label:'主峰 ★★',cls:'peak-major'};
+  if(h===7)return{label:'中峰 ★',cls:'peak-mod'};
+  if(h===4)return{label:'小峰 ◇',cls:'peak-min'};
+  if([3,6,9,12].includes(h))return{label:'衰落 ▼',cls:'peak-dec'};
+  return{label:'平稳',cls:'peak-neu'};
+}
+function addDays(ms,d){return ms+d*86400000;}
+function fmtDate(ms){
+  const d=new Date(ms);
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+}
+function fmtTime(ms){
+  const d=new Date(ms);
+  return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+}
+function isCur(s,e){const n=Date.now();return s<=n&&n<e;}
+function calcAge(birthMs, eventMs){
+  const b=new Date(birthMs), e=new Date(eventMs);
+  let age=e.getUTCFullYear()-b.getUTCFullYear();
+  const hadBday=(e.getUTCMonth()>b.getUTCMonth())||(e.getUTCMonth()===b.getUTCMonth()&&e.getUTCDate()>=b.getUTCDate());
+  if(!hadBday) age--;
+  return age;
+}
+
+// ── Storage ──
+let _notes = {}; // noteKey -> text
+let _profiles = {}; // name -> {year,month,day,hour,min,startSign,fortuneSign}
+let _currentProfile = null;
+
+function loadStorage(){
+  try{
+    _notes = JSON.parse(localStorage.getItem('zr_notes')||'{}');
+    _profiles = JSON.parse(localStorage.getItem('zr_profiles')||'{}');
+  }catch(e){ _notes={}; _profiles={}; }
+}
+function saveStorage(){
+  localStorage.setItem('zr_notes', JSON.stringify(_notes));
+  localStorage.setItem('zr_profiles', JSON.stringify(_profiles));
+}
+function noteKey(person, level, startMs){
+  return `${person}|${level}|${startMs}`;
+}
+
+// ── Export / Import ──
+function exportData(){
+  const data = {notes: _notes, profiles: _profiles, exported: new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'zr_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(data.notes) Object.assign(_notes, data.notes);
+      if(data.profiles) Object.assign(_profiles, data.profiles);
+      saveStorage();
+      renderPersonBar();
+      alert('导入成功！');
+    }catch(err){ alert('文件格式错误'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ── Profile management ──
+function saveCurrentProfile(){
+  const name = document.getElementById('pName').value.trim();
+  if(!name) return;
+  _profiles[name] = {
+    year: parseInt(document.getElementById('bYear').value),
+    month: parseInt(document.getElementById('bMonth').value),
+    day: parseInt(document.getElementById('bDay').value),
+    hour: parseInt(document.getElementById('bHour').value)||0,
+    min: parseInt(document.getElementById('bMin').value)||0,
+    startSign: document.getElementById('startSign').value,
+    fortuneSign: document.getElementById('fortuneSign').value,
+  };
+  _currentProfile = name;
+  saveStorage();
+  renderPersonBar();
+}
+function loadProfile(name){
+  const p = _profiles[name];
+  if(!p) return;
+  document.getElementById('pName').value = name;
+  document.getElementById('bYear').value = p.year||1987;
+  // set month
+  const mSel = document.getElementById('bMonth');
+  for(let i=0;i<mSel.options.length;i++) if(mSel.options[i].value==p.month) mSel.selectedIndex=i;
+  const dSel = document.getElementById('bDay');
+  for(let i=0;i<dSel.options.length;i++) if(dSel.options[i].value==p.day) dSel.selectedIndex=i;
+  const hSel = document.getElementById('bHour');
+  for(let i=0;i<hSel.options.length;i++) if(hSel.options[i].value==p.hour) hSel.selectedIndex=i;
+  const nSel = document.getElementById('bMin');
+  for(let i=0;i<nSel.options.length;i++) if(nSel.options[i].value==p.min) nSel.selectedIndex=i;
+  const ssSel = document.getElementById('startSign');
+  for(let i=0;i<ssSel.options.length;i++) if(ssSel.options[i].value==p.startSign) ssSel.selectedIndex=i;
+  const fsSel = document.getElementById('fortuneSign');
+  for(let i=0;i<fsSel.options.length;i++) if(fsSel.options[i].value==p.fortuneSign) fsSel.selectedIndex=i;
+  _currentProfile = name;
+  renderPersonBar();
+  generate();
+}
+function deleteProfile(name){
+  if(!confirm(`删除「${name}」的档案？备注数据也会一起删除。`)) return;
+  delete _profiles[name];
+  // delete notes for this person
+  Object.keys(_notes).forEach(k => { if(k.startsWith(name+'|')) delete _notes[k]; });
+  if(_currentProfile === name) _currentProfile = null;
+  saveStorage();
+  renderPersonBar();
+  closePersonModal();
+}
+function renderPersonBar(){
+  const bar = document.getElementById('personBar');
+  bar.innerHTML = '<button class="person-chip add-btn" onclick="showPersonModal()">＋ 管理</button>';
+  Object.keys(_profiles).forEach(name => {
+    const chip = document.createElement('button');
+    chip.className = 'person-chip' + (name===_currentProfile?' active':'');
+    chip.textContent = name;
+    chip.onclick = () => loadProfile(name);
+    bar.appendChild(chip);
+  });
+}
+function showPersonModal(){
+  const list = document.getElementById('personList');
+  list.innerHTML = '';
+  const names = Object.keys(_profiles);
+  if(names.length===0){
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">尚无保存的档案。填入信息后点「生成时间表」会自动保存。</div>';
+  } else {
+    names.forEach(name => {
+      const p = _profiles[name];
+      const item = document.createElement('div');
+      item.className = 'person-list-item';
+      const noteCount = Object.keys(_notes).filter(k=>k.startsWith(name+'|')).length;
+      item.innerHTML = `
+        <div class="person-name">
+          <div>${name}</div>
+          <div style="font-size:10px;color:var(--muted)">${p.startSign}起 · 福点${p.fortuneSign} · ${noteCount}条备注</div>
+        </div>
+        <button class="btn-outline" onclick="loadProfile('${name}');closePersonModal()" style="font-size:12px;padding:5px 10px">加载</button>
+        <button class="person-del" onclick="deleteProfile('${name}')">✕</button>`;
+      list.appendChild(item);
+    });
+  }
+  document.getElementById('personModal').classList.add('open');
+}
+function closePersonModal(){
+  document.getElementById('personModal').classList.remove('open');
+}
+
+// ── Notes ──
+let _currentNoteKey = null;
+function openNoteModal(key, label){
+  _currentNoteKey = key;
+  document.getElementById('noteModalTitle').textContent = label;
+  document.getElementById('noteText').value = _notes[key]||'';
+  const delBtn = document.getElementById('noteDelBtn');
+  delBtn.style.display = _notes[key] ? 'block' : 'none';
+  document.getElementById('noteModal').classList.add('open');
+  setTimeout(()=>document.getElementById('noteText').focus(),100);
+}
+function closeNoteModal(){
+  document.getElementById('noteModal').classList.remove('open');
+  _currentNoteKey = null;
+}
+function saveNote(){
+  if(!_currentNoteKey) return;
+  const text = document.getElementById('noteText').value.trim();
+  if(text) _notes[_currentNoteKey] = text;
+  else delete _notes[_currentNoteKey];
+  saveStorage();
+  closeNoteModal();
+  // Update UI
+  const btn = document.querySelector(`[data-nkey="${CSS.escape(_currentNoteKey)}"]`);
+  if(btn){
+    btn.textContent = text ? '✏️' : '✎';
+    btn.classList.toggle('has-note', !!text);
+    // Update or remove note display
+    const noteDiv = btn.closest('.row-info')?.querySelector('.note-display');
+    if(noteDiv){ if(text) noteDiv.textContent=text; else noteDiv.remove(); }
+    else if(text){
+      const info = btn.closest('.row-info');
+      if(info){
+        const nd = document.createElement('div');
+        nd.className = 'note-display';
+        nd.textContent = text;
+        info.appendChild(nd);
+      }
+    }
+  }
+  if(document.getElementById('notesPanel').classList.contains('open')) showNotes();
+}
+function deleteNote(){
+  if(!_currentNoteKey) return;
+  delete _notes[_currentNoteKey];
+  saveStorage();
+  closeNoteModal();
+  const btn = document.querySelector(`[data-nkey="${CSS.escape(_currentNoteKey)}"]`);
+  if(btn){
+    btn.textContent = '✎';
+    btn.classList.remove('has-note');
+    const noteDiv = btn.closest('.row-info')?.querySelector('.note-display');
+    if(noteDiv) noteDiv.remove();
+  }
+  if(document.getElementById('notesPanel').classList.contains('open')) showNotes();
+}
+function showNotes(){
+  const panel = document.getElementById('notesPanel');
+  const list  = document.getElementById('notesList');
+  panel.classList.toggle('open');
+  if(!panel.classList.contains('open')) return;
+  const person = _currentProfile || document.getElementById('pName').value.trim();
+  const keys = Object.keys(_notes).filter(k => !person || k.startsWith(person+'|'));
+  list.innerHTML = '';
+  if(keys.length===0){
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">暂无备注</div>';
+    return;
+  }
+  keys.forEach(k => {
+    const parts = k.split('|');
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    item.innerHTML = `<div class="note-meta">${parts[0]} · ${parts[1]} · ${parts[2]?fmtDate(parseInt(parts[2])):''}</div>
+                      <div class="note-text">${_notes[k]}</div>`;
+    list.appendChild(item);
+  });
+}
+
+// ── Note button builder ──
+function makeNoteBtn(person, level, startMs, sign){
+  const k = noteKey(person, `${level}·${sign}`, startMs);
+  const hasNote = !!_notes[k];
+  const btn = document.createElement('button');
+  btn.className = 'note-btn' + (hasNote?' has-note':'');
+  btn.textContent = hasNote ? '✏️' : '✎';
+  btn.setAttribute('data-nkey', k);
+  const label = `${person} · ${level} · ${sign} · ${fmtDate(startMs)}`;
+  btn.onclick = (e) => { e.stopPropagation(); openNoteModal(k, label); };
+  return btn;
+}
+function makeNoteDisplay(k){
+  if(!_notes[k]) return null;
+  const d = document.createElement('div');
+  d.className = 'note-display';
+  d.textContent = _notes[k];
+  return d;
+}
+
+// ── Generate ──
+function generate(){
+  const name = document.getElementById('pName').value.trim() || '未命名';
+  const by = parseInt(document.getElementById('bYear').value);
+  const bm = parseInt(document.getElementById('bMonth').value);
+  const bd = parseInt(document.getElementById('bDay').value);
+  const bh = parseInt(document.getElementById('bHour').value)||0;
+  const bn = parseInt(document.getElementById('bMin').value)||0;
+  const ss = document.getElementById('startSign').value;
+  const fs = document.getElementById('fortuneSign').value;
+  if(!by||!bm||!bd){ alert('请填入出生日期'); return; }
+
+  // Auto-save profile
+  document.getElementById('pName').value = name;
+  _profiles[name] = {year:by,month:bm,day:bd,hour:bh,min:bn,startSign:ss,fortuneSign:fs};
+  _currentProfile = name;
+  saveStorage();
+  renderPersonBar();
+
+  window._fs = fs;
+  window._person = name;
+  window._l3cache = {};
+  window._l4cache = {};
+
+  const birthMs = Date.UTC(by,bm-1,bd,bh,bn,0);
+  window._birthMs = birthMs;
+  const maxMs   = Date.UTC(by+120,0,1);
+  const blocks  = [];
+  let curMs = birthMs, l1Sign = ss;
+
+  for(let c=0;c<50&&curMs<maxMs;c++){
+    const yrs=SIGN_MAP[l1Sign].years, days=yrs*D_YEAR;
+    const l1S=curMs, l1E=addDays(l1S,days);
+    const h1=fHouse(l1Sign,fs), p1=peak(h1);
+    const l2CycleDays=TOTAL*D_MONTH;
+    const l2s=[];
+    let l2Ms=l1S;
+
+    for(let off=0;off<12;off++){
+      const s2=signAt(l1Sign,off), d2=SIGN_MAP[s2].years*D_MONTH;
+      const e2r=addDays(l2Ms,d2), tr=e2r>l1E, l2E=tr?l1E:e2r;
+      if(l2Ms>=l1E)break;
+      l2s.push({sign:s2,dur:`${SIGN_MAP[s2].years}月${tr?' (截)':''}`,startMs:l2Ms,endMs:l2E,house:fHouse(s2,fs),pk:peak(fHouse(s2,fs)),isLb:false,isPost:false});
+      l2Ms=l2E; if(tr)break;
+    }
+    if(days>l2CycleDays){
+      const os=opp(l1Sign);
+      l2s.push({sign:`→ ${os}`,dur:'松绑',startMs:l2Ms,endMs:l2Ms,house:fHouse(os,fs),pk:{label:'松绑 LB',cls:'peak-lb'},isLb:true,isPost:false});
+      let lbMs=l2Ms;
+      for(let off=0;off<12;off++){
+        const s2=signAt(os,off),d2=SIGN_MAP[s2].years*D_MONTH;
+        const e2r=addDays(lbMs,d2),tr=e2r>l1E,l2E=tr?l1E:e2r;
+        if(lbMs>=l1E)break;
+        l2s.push({sign:s2,dur:`${SIGN_MAP[s2].years}月${tr?' (截)':''}`,startMs:lbMs,endMs:l2E,house:fHouse(s2,fs),pk:peak(fHouse(s2,fs)),isLb:false,isPost:true});
+        lbMs=l2E; if(tr)break;
+      }
+    }
+    blocks.push({sign:l1Sign,dur:`${yrs}年`,startMs:l1S,endMs:l1E,house:h1,pk:p1,l2s});
+    curMs=l1E; l1Sign=signAt(l1Sign,1);
+  }
+  renderBlocks(blocks, name, fs);
+}
+
+// ── Render ──
+function renderBlocks(blocks, person, fs){
+  const out = document.getElementById('output');
+  out.innerHTML = '';
+  const cards = document.createElement('div');
+  cards.className = 'cards';
+
+  blocks.forEach((b,bi) => {
+    const curL1 = isCur(b.startMs,b.endMs);
+    const block = document.createElement('div');
+    block.className = 'l1-block';
+
+    // L1 header
+    const hdr = document.createElement('div');
+    hdr.className = 'l1-header'+(curL1?' is-current':'');
+
+    const l1NoteKey = noteKey(person, `L1·${b.sign}`, b.startMs);
+    const l1HasNote = !!_notes[l1NoteKey];
+    hdr.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="l1-sign">${curL1?'<span class="current-mark">●</span>':''}${b.sign}</span>
+          <span class="peak ${b.pk.cls}" style="font-size:9px">${b.pk.label}</span>
+          ${l1HasNote?'<span style="color:var(--gold);font-size:11px">✏️</span>':''}
+        </div>
+        ${l1HasNote?`<div class="note-display" style="margin-top:4px">${_notes[l1NoteKey]}</div>`:''}
+      </div>
+      <div class="l1-meta">
+        <div>${b.dur} · 第${b.house}宫</div>
+        <div class="dates">${fmtDate(b.startMs)} <span style="color:var(--gold);font-size:9px">${calcAge(window._birthMs,b.startMs)}岁</span><br>${fmtDate(b.endMs)} <span style="color:var(--gold);font-size:9px">${calcAge(window._birthMs,b.endMs)}岁</span></div>
+      </div>
+      <span class="collapse-btn">▼</span>`;
+
+    const body = document.createElement('div');
+
+    // L1 note button (click on sign area)
+    const l1NoteBtn = document.createElement('button');
+    l1NoteBtn.className = 'note-btn'+(l1HasNote?' has-note':'');
+    l1NoteBtn.textContent = l1HasNote?'✏️':'✎';
+    l1NoteBtn.setAttribute('data-nkey', l1NoteKey);
+    l1NoteBtn.style.cssText = 'position:absolute;top:8px;right:36px;';
+    l1NoteBtn.onclick = e => { e.stopPropagation(); openNoteModal(l1NoteKey, `L1 · ${b.sign} · ${fmtDate(b.startMs)}`); };
+    hdr.style.position = 'relative';
+    hdr.appendChild(l1NoteBtn);
+
+    hdr.addEventListener('click', () => {
+      const open = body.style.display !== 'none';
+      if(open){
+        // Collapse: remove all L3 and L4 rows, reset buttons
+        body.querySelectorAll('[data-l3]').forEach(el=>el.remove());
+        body.querySelectorAll('[data-l4]').forEach(el=>el.remove());
+        body.querySelectorAll('.expand-btn').forEach(b=>b.textContent='▶ L3');
+        body.querySelectorAll('.l4-btn').forEach(b=>b.textContent='▶ L4');
+      }
+      body.style.display = open?'none':'block';
+      hdr.querySelector('.collapse-btn').textContent = open?'▶':'▼';
+    });
+
+    block.appendChild(hdr);
+    block.appendChild(body);
+
+    // L2 rows
+    b.l2s.forEach((l2,l2i) => {
+      const curL2 = !l2.isLb && isCur(l2.startMs,l2.endMs);
+      const row = document.createElement('div');
+      row.className = 'l2-row'+(l2.isLb?' lb-row':l2.isPost?' l2-post':'')+(curL2?' is-current':'');
+
+      if(l2.isLb){
+        row.innerHTML = `<span class="lb-badge">松绑 LB</span>
+          <span style="color:var(--lb-text);font-style:italic;font-size:12px;flex:1">${l2.sign}</span>
+          <span class="peak ${l2.pk.cls}">${l2.pk.label}</span>`;
+      } else {
+        const l3key = `${bi}-${l2i}`;
+        window._l3cache[l3key] = l2;
+        const l2nk = noteKey(person, `L2·${l2.sign}`, l2.startMs);
+        const l2HasNote = !!_notes[l2nk];
+
+        const signDiv = document.createElement('div');
+        signDiv.className = 'row-sign';
+        signDiv.innerHTML = `<div class="l2-sign">${curL2?'<span class="current-mark">●</span>':''}${l2.sign}</div>
+          <div class="l2-dur">${l2.dur}</div>`;
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'row-info';
+        infoDiv.innerHTML = `<div class="row-house">福点第${l2.house}宫</div>
+          <div class="row-dates">${fmtDate(l2.startMs)}<span style="color:var(--gold);font-size:9px"> ${calcAge(window._birthMs,l2.startMs)}岁</span> → ${fmtDate(l2.endMs)}<span style="color:var(--gold);font-size:9px"> ${calcAge(window._birthMs,l2.endMs)}岁</span></div>`;
+        if(l2HasNote){
+          const nd = document.createElement('div');
+          nd.className = 'note-display';
+          nd.textContent = _notes[l2nk];
+          infoDiv.appendChild(nd);
+        }
+
+        const rightDiv = document.createElement('div');
+        rightDiv.className = 'row-right';
+        const pkSpan = document.createElement('span');
+        pkSpan.className = `peak ${l2.pk.cls}`;
+        pkSpan.textContent = l2.pk.label;
+        const nb = makeNoteBtn(person,'L2·'+l2.sign,l2.startMs,l2.sign);
+        // Override data-nkey to match l2nk
+        nb.setAttribute('data-nkey', l2nk);
+        nb.onclick = e => { e.stopPropagation(); openNoteModal(l2nk, `L2 · ${b.sign}/${l2.sign} · ${fmtDate(l2.startMs)}`); };
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'expand-btn';
+        expandBtn.textContent = '▶ L3';
+        expandBtn.onclick = e => { e.stopPropagation(); toggleL3(l3key, expandBtn); };
+        rightDiv.appendChild(pkSpan);
+        rightDiv.appendChild(nb);
+        rightDiv.appendChild(expandBtn);
+
+        row.appendChild(signDiv);
+        row.appendChild(infoDiv);
+        row.appendChild(rightDiv);
+      }
+      body.appendChild(row);
+    });
+
+    cards.appendChild(block);
+    body.style.display = curL1?'block':'none';
+    hdr.querySelector('.collapse-btn').textContent = curL1?'▼':'▶';
+  });
+
+  out.appendChild(cards);
+  const cur = out.querySelector('.is-current');
+  if(cur) setTimeout(()=>cur.scrollIntoView({behavior:'smooth',block:'center'}),300);
+}
+
+// ── L3 ──
+function genL3(l2Row){
+  const fs=window._fs;
+  if(!l2Row||l2Row.isLb)return[];
+  const rawSign=l2Row.sign.replace(/\s*\(截[^)]*\)/g,'').trim();
+  if(!SIGN_MAP[rawSign])return[];
+  const rows=[],endMs=l2Row.endMs;
+  let ms=l2Row.startMs,lbDone=false,curStart=rawSign,safety=0;
+  while(ms<endMs&&safety++<500){
+    let ok=true;
+    for(let off=0;off<12;off++){
+      if(ms>=endMs){ok=false;break;}
+      const s=signAt(curStart,off),er=ms+SIGN_MAP[s].years*D_L3*86400000,tr=er>endMs,e=tr?endMs:er;
+      const h=fHouse(s,fs);
+      rows.push({sign:s,dur:(((e-ms)/86400000).toFixed(1))+'天',startMs:ms,endMs:e,house:h,pk:peak(h),trunc:tr,isLb:false});
+      ms=e; if(tr){ok=false;break;}
+    }
+    if(!ok||ms>=endMs)break;
+    if(!lbDone){
+      const os=opp(rawSign);
+      rows.push({sign:'→ '+os,dur:'—',startMs:ms,endMs:ms,house:fHouse(os,fs),pk:{label:'L3松绑',cls:'peak-lb'},isLb:true});
+      curStart=os;lbDone=true;
+    }else{curStart=curStart===rawSign?opp(rawSign):rawSign;}
+  }
+  return rows;
+}
+
+function toggleL3(key,btn){
+  const row=btn.closest('.l2-row');
+  const body=row.parentNode;
+  const existing=body.querySelectorAll(`[data-l3="${key}"]`);
+  if(existing.length>0){
+    // First collapse all L4 rows under this L3 block
+    existing.forEach(l3el=>{
+      const l4key=l3el.getAttribute('data-l3-idx');
+      if(l4key){
+        const l4rows=body.querySelectorAll('[data-l4="'+l4key+'"]');
+        l4rows.forEach(el=>el.remove());
+        // Reset L4 button text
+        const l4btn=l3el.querySelector('.l4-btn');
+        if(l4btn) l4btn.textContent='▶ L4';
+      }
+      l3el.remove();
+    });
+    btn.textContent='▶ L3';
+    return;
+  }
+  const l2Row=window._l3cache[key];
+  const person=window._person||'';
+  const l3rows=genL3(l2Row);
+  let insertAfter=row,l3idx=0;
+  l3rows.forEach(l3=>{
+    const el=document.createElement('div');
+    el.setAttribute('data-l3',key);
+    if(!l3.isLb) el.setAttribute('data-l3-idx',key+'-'+l3idx);
+    const l4key=key+'-'+l3idx;
+    if(!l3.isLb) window._l4cache[l4key]=l3;
+
+    if(l3.isLb){
+      el.className='l3-row';
+      el.innerHTML=`<span style="color:var(--lb-text);font-style:italic;font-size:11px">${l3.sign}</span>
+        <div style="flex:1"></div><span class="peak ${l3.pk.cls}" style="font-size:9px">${l3.pk.label}</span>`;
+    }else{
+      const curL3=isCur(l3.startMs,l3.endMs);
+      el.className='l3-row'+(curL3?' is-current':'');
+      const l3nk=noteKey(person,`L3·${l3.sign}`,l3.startMs);
+      const l3HasNote=!!_notes[l3nk];
+
+      const sDiv=document.createElement('div');
+      sDiv.className='row-sign';
+      sDiv.innerHTML=`<div class="l3-sign">${curL3?'<span class="current-mark">●</span>':''}${l3.sign}</div>
+        <div class="l3-dur">${l3.dur}</div>`;
+
+      const iDiv=document.createElement('div');
+      iDiv.className='row-info';
+      iDiv.innerHTML=`<div class="row-house">福点第${l3.house}宫</div>
+        <div class="row-dates">${fmtDate(l3.startMs)}<span style="color:var(--gold);font-size:9px"> ${calcAge(window._birthMs,l3.startMs)}岁</span> → ${fmtDate(l3.endMs)}<span style="color:var(--gold);font-size:9px"> ${calcAge(window._birthMs,l3.endMs)}岁</span></div>`;
+      if(l3HasNote){const nd=document.createElement('div');nd.className='note-display';nd.textContent=_notes[l3nk];iDiv.appendChild(nd);}
+
+      const rDiv=document.createElement('div');
+      rDiv.className='row-right';
+      const pk=document.createElement('span');pk.className=`peak ${l3.pk.cls}`;pk.style.fontSize='9px';pk.textContent=l3.pk.label;
+      const nb=document.createElement('button');
+      nb.className='note-btn'+(l3HasNote?' has-note':'');
+      nb.textContent=l3HasNote?'✏️':'✎';
+      nb.setAttribute('data-nkey',l3nk);
+      nb.onclick=e=>{e.stopPropagation();openNoteModal(l3nk,`L3 · ${l3.sign} · ${fmtDate(l3.startMs)}`);};
+      const l4b=document.createElement('button');
+      l4b.className='l4-btn';l4b.textContent='▶ L4';
+      l4b.onclick=e=>{e.stopPropagation();toggleL4(l4key,l4b);};
+      rDiv.appendChild(pk);rDiv.appendChild(nb);rDiv.appendChild(l4b);
+      el.appendChild(sDiv);el.appendChild(iDiv);el.appendChild(rDiv);
+    }
+    insertAfter.insertAdjacentElement('afterend',el);
+    insertAfter=el;l3idx++;
+  });
+  btn.textContent='▼ L3';
+}
+
+// ── L4 ──
+function genL4(l3Row){
+  const fs=window._fs;
+  if(!l3Row||l3Row.isLb)return[];
+  const rawSign=l3Row.sign.replace(/\s*\(截[^)]*\)/g,'').replace('-> ','').trim();
+  if(!SIGN_MAP[rawSign])return[];
+  const rows=[],endMs=l3Row.endMs;
+  let ms=l3Row.startMs,lbDone=false,curStart=rawSign,safety=0;
+  while(ms<endMs&&safety++<500){
+    let ok=true;
+    for(let off=0;off<12;off++){
+      if(ms>=endMs){ok=false;break;}
+      const s=signAt(curStart,off),er=ms+SIGN_MAP[s].years*H_L4*MS_HOUR,tr=er>endMs,e=tr?endMs:er;
+      rows.push({sign:s,dur:((e-ms)/MS_HOUR).toFixed(1)+'小时',startMs:ms,endMs:e,house:fHouse(s,fs),pk:peak(fHouse(s,fs)),trunc:tr,isLb:false});
+      ms=e;if(tr){ok=false;break;}
+    }
+    if(!ok||ms>=endMs)break;
+    if(!lbDone){
+      const os=opp(rawSign);
+      rows.push({sign:'→ '+os,dur:'—',startMs:ms,endMs:ms,house:fHouse(os,fs),pk:{label:'L4松绑',cls:'peak-lb'},isLb:true});
+      curStart=os;lbDone=true;
+    }else{curStart=curStart===rawSign?opp(rawSign):rawSign;}
+  }
+  return rows;
+}
+
+function toggleL4(key,btn){
+  const row=btn.closest('.l3-row');
+  const body=row.parentNode;
+  const existing=body.querySelectorAll(`[data-l4="${key}"]`);
+  if(existing.length>0){existing.forEach(el=>el.remove());btn.textContent='▶ L4';return;}
+  const l3Row=window._l4cache&&window._l4cache[key];
+  if(!l3Row)return;
+  const person=window._person||'';
+  const l4rows=genL4(l3Row);
+  let insertAfter=row;
+  l4rows.forEach(l4=>{
+    const el=document.createElement('div');
+    el.setAttribute('data-l4',key);
+    if(l4.isLb){
+      el.className='l4-row';
+      el.innerHTML=`<span style="color:var(--lb-text);font-style:italic;font-size:10px">${l4.sign}</span>
+        <div style="flex:1"></div><span class="peak ${l4.pk.cls}" style="font-size:9px">${l4.pk.label}</span>`;
+    }else{
+      const curL4=isCur(l4.startMs,l4.endMs);
+      el.className='l4-row'+(curL4?' is-current':'');
+      const l4nk=noteKey(person,`L4·${l4.sign}`,l4.startMs);
+      const l4HasNote=!!_notes[l4nk];
+
+      const sDiv=document.createElement('div');
+      sDiv.className='row-sign';
+      sDiv.innerHTML=`<div class="l4-sign">${curL4?'<span class="current-mark">●</span>':''}${l4.sign}</div>
+        <div class="l4-dur">${l4.dur}</div>`;
+
+      const iDiv=document.createElement('div');
+      iDiv.className='row-info';
+      iDiv.innerHTML=`<div class="row-house">福点第${l4.house}宫</div>
+        <div class="row-dates">${fmtDate(l4.startMs)} ${fmtTime(l4.startMs)}<span style="color:var(--gold);font-size:9px"> ${calcAge(window._birthMs,l4.startMs)}岁</span> → ${fmtDate(l4.endMs)} ${fmtTime(l4.endMs)}</div>`;
+      if(l4HasNote){const nd=document.createElement('div');nd.className='note-display';nd.textContent=_notes[l4nk];iDiv.appendChild(nd);}
+
+      const rDiv=document.createElement('div');rDiv.className='row-right';
+      const pk=document.createElement('span');pk.className=`peak ${l4.pk.cls}`;pk.style.fontSize='9px';pk.textContent=l4.pk.label;
+      const nb=document.createElement('button');
+      nb.className='note-btn'+(l4HasNote?' has-note':'');
+      nb.textContent=l4HasNote?'✏️':'✎';
+      nb.setAttribute('data-nkey',l4nk);
+      nb.onclick=e=>{e.stopPropagation();openNoteModal(l4nk,`L4 · ${l4.sign} · ${fmtDate(l4.startMs)} ${fmtTime(l4.startMs)}`);};
+      rDiv.appendChild(pk);rDiv.appendChild(nb);
+      el.appendChild(sDiv);el.appendChild(iDiv);el.appendChild(rDiv);
+    }
+    insertAfter.insertAdjacentElement('afterend',el);
+    insertAfter=el;
+  });
+  btn.textContent='▼ L4';
+}
+
+// ── Build dropdowns ──
+function buildSelects(){
+  const mSel=document.getElementById('bMonth');
+  for(let i=1;i<=12;i++) mSel.innerHTML+=`<option value="${i}"${i===8?' selected':''}>${i}月</option>`;
+  const dSel=document.getElementById('bDay');
+  for(let i=1;i<=31;i++) dSel.innerHTML+=`<option value="${i}"${i===7?' selected':''}>${i}日</option>`;
+  const hSel=document.getElementById('bHour');
+  for(let i=0;i<24;i++) hSel.innerHTML+=`<option value="${i}">${String(i).padStart(2,'0')}时</option>`;
+  const nSel=document.getElementById('bMin');
+  [0,5,10,15,20,25,30,35,40,45,50,55].forEach(m=>nSel.innerHTML+=`<option value="${m}">${String(m).padStart(2,'0')}分</option>`);
+  ['startSign','fortuneSign'].forEach((id,idx)=>{
+    const sel=document.getElementById(id);
+    SIGN_NAMES.forEach(n=>sel.innerHTML+=`<option value="${n}"${n===(idx===0?'射手':'双鱼')?' selected':''}>${n}</option>`);
+  });
+}
+
+// Close modals on overlay click
+document.getElementById('noteModal').addEventListener('click',function(e){if(e.target===this)closeNoteModal();});
+document.getElementById('personModal').addEventListener('click',function(e){if(e.target===this)closePersonModal();});
+
+
+// ── ICS Calendar Export ──
+function peakEmoji(label){
+  if(label.includes('主峰')) return '🔴';
+  if(label.includes('中峰')) return '🟠';
+  if(label.includes('小峰')) return '🟡';
+  if(label.includes('衰落')) return '⚫';
+  return '⚪';
+}
+
+function fmtICSDate(ms){
+  const d = new Date(ms);
+  return d.getUTCFullYear()
+    + String(d.getUTCMonth()+1).padStart(2,'0')
+    + String(d.getUTCDate()).padStart(2,'0')
+    + 'T'
+    + String(d.getUTCHours()).padStart(2,'0')
+    + String(d.getUTCMinutes()).padStart(2,'0')
+    + '00Z';
+}
+
+function uid(ms, sign){ return `zr-${ms}-${sign}@zrcalc`.replace(/[^a-zA-Z0-9@.-]/g,''); }
+
+function exportICS(){
+  const by = parseInt(document.getElementById('bYear').value);
+  const bm = parseInt(document.getElementById('bMonth').value);
+  const bd = parseInt(document.getElementById('bDay').value);
+  const bh = parseInt(document.getElementById('bHour').value)||0;
+  const bn = parseInt(document.getElementById('bMin').value)||0;
+  const ss = document.getElementById('startSign').value;
+  const fs = document.getElementById('fortuneSign').value;
+  if(!by||!bm||!bd){ alert('请先生成时间表'); return; }
+
+  const birthMs = Date.UTC(by,bm-1,bd,bh,bn,0);
+  const maxMs   = Date.UTC(by+120,0,1);
+  const lines   = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ZR Calculator//Zodiacal Releasing//ZH',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:黄道释放 ${ss}起 福点${fs}`,
+    'X-WR-TIMEZONE:UTC',
+  ];
+
+  const now = fmtICSDate(Date.now());
+
+  // Generate all L1 blocks
+  let curMs = birthMs, l1Sign = ss;
+  for(let lc=0; lc<50 && curMs<maxMs; lc++){
+    const l1Yrs  = SIGN_MAP[l1Sign].years;
+    const l1Days = l1Yrs * D_YEAR;
+    const l1S = curMs, l1E = addDays(l1S, l1Days);
+    const h1  = fHouse(l1Sign, fs);
+    const pk1 = peak(h1);
+
+    // Build L2 list
+    const l2CycleDays = TOTAL * D_MONTH;
+    const l2List = [];
+    let l2Ms = l1S;
+    for(let off=0; off<12; off++){
+      const s2=signAt(l1Sign,off), d2=SIGN_MAP[s2].years*D_MONTH;
+      const e2r=addDays(l2Ms,d2), tr=e2r>l1E, l2E=tr?l1E:e2r;
+      if(l2Ms>=l1E) break;
+      l2List.push({sign:s2,startMs:l2Ms,endMs:l2E,house:fHouse(s2,fs),pk:peak(fHouse(s2,fs))});
+      l2Ms=l2E; if(tr) break;
+    }
+    if(l1Days > l2CycleDays){
+      const os=opp(l1Sign); let lbMs=l2Ms;
+      for(let off=0; off<12; off++){
+        const s2=signAt(os,off), d2=SIGN_MAP[s2].years*D_MONTH;
+        const e2r=addDays(lbMs,d2), tr=e2r>l1E, l2E=tr?l1E:e2r;
+        if(lbMs>=l1E) break;
+        l2List.push({sign:s2,startMs:lbMs,endMs:l2E,house:fHouse(s2,fs),pk:peak(fHouse(s2,fs))});
+        lbMs=l2E; if(tr) break;
+      }
+    }
+
+    // For each L2, generate L3, then L4
+    l2List.forEach(l2 => {
+      const rawL2 = l2.sign;
+      if(!SIGN_MAP[rawL2]) return;
+
+      // Generate L3
+      let l3Ms=l2.startMs, l3LbDone=false, l3Cur=rawL2, l3Safety=0;
+      while(l3Ms < l2.endMs && l3Safety++<500){
+        let l3CycleOk=true;
+        for(let off=0; off<12; off++){
+          if(l3Ms>=l2.endMs){l3CycleOk=false;break;}
+          const s3=signAt(l3Cur,off);
+          const l3Er=l3Ms+SIGN_MAP[s3].years*D_L3*86400000;
+          const l3Tr=l3Er>l2.endMs, l3E=l3Tr?l2.endMs:l3Er;
+          const h3=fHouse(s3,fs), pk3=peak(h3);
+
+          // Generate L4 within this L3 segment
+          let l4Ms=l3Ms, l4LbDone=false, l4Cur=s3, l4Safety=0;
+          while(l4Ms<l3E && l4Safety++<500){
+            let l4CycleOk=true;
+            for(let off4=0; off4<12; off4++){
+              if(l4Ms>=l3E){l4CycleOk=false;break;}
+              const s4=signAt(l4Cur,off4);
+              const l4Er=l4Ms+SIGN_MAP[s4].years*H_L4*MS_HOUR;
+              const l4Tr=l4Er>l3E, l4E=l4Tr?l3E:l4Er;
+              const h4=fHouse(s4,fs), pk4=peak(h4);
+              const durHours=((l4E-l4Ms)/MS_HOUR).toFixed(1);
+
+              // Build context string showing L1-L3 peaks
+              const ctx = [];
+              if(!pk1.label.includes('平稳')) ctx.push(`L1${pk1.label}`);
+              if(!l2.pk.label.includes('平稳')) ctx.push(`L2${l2.pk.label}`);
+              if(!pk3.label.includes('平稳')) ctx.push(`L3${pk3.label}`);
+              const ctxStr = ctx.length>0 ? ` [${ctx.join('·')}]` : '';
+
+              const emoji4 = peakEmoji(pk4.label);
+              const summary = `${emoji4}${pk4.label}${ctxStr} | ${l1Sign}/${rawL2}/${s3}/${s4}`;
+              const desc = `L1:${l1Sign}(${pk1.label}) L2:${rawL2}(${l2.pk.label}) L3:${s3}(${pk3.label}) L4:${s4}(${pk4.label})\n时长:${durHours}小时\n福点第${h4}宫`;
+
+              lines.push('BEGIN:VEVENT');
+              lines.push(`UID:${uid(l4Ms, s4)}`);
+              lines.push(`DTSTAMP:${now}`);
+              lines.push(`DTSTART:${fmtICSDate(l4Ms)}`);
+              lines.push(`DTEND:${fmtICSDate(l4E)}`);
+              lines.push(`SUMMARY:${summary}`);
+              lines.push(`DESCRIPTION:${desc}`);
+              // Color category by L4 peak
+              if(h4===1||h4===10) lines.push('CATEGORIES:主峰');
+              else if(h4===7)     lines.push('CATEGORIES:中峰');
+              else if(h4===4)     lines.push('CATEGORIES:小峰');
+              else if([3,6,9,12].includes(h4)) lines.push('CATEGORIES:衰落');
+              lines.push('END:VEVENT');
+
+              l4Ms=l4E;
+              if(l4Tr){l4CycleOk=false;break;}
+            }
+            if(!l4CycleOk||l4Ms>=l3E) break;
+            if(!l4LbDone){const os4=opp(s4);l4Cur=os4;l4LbDone=true;}
+            else{l4Cur=l4Cur===s4?opp(s4):s4;}
+          }
+
+          l3Ms=l3E;
+          if(l3Tr){l3CycleOk=false;break;}
+        }
+        if(!l3CycleOk||l3Ms>=l2.endMs) break;
+        if(!l3LbDone){const os3=opp(rawL2);l3Cur=os3;l3LbDone=true;}
+        else{l3Cur=l3Cur===rawL2?opp(rawL2):rawL2;}
+      }
+    });
+
+    curMs = l1E;
+    l1Sign = signAt(l1Sign, 1);
+  }
+
+  lines.push('END:VCALENDAR');
+
+  const icsContent = lines.join('\r\n');
+  const blob = new Blob([icsContent], {type:'text/calendar;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  const person = document.getElementById('pName').value.trim()||'zr';
+  a.download = `${person}_zr_${ss}_${fs}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+  alert('日历文件已生成！导入到 Apple Calendar 或 Google Calendar 即可查看。');
+}
+// ── Init ──
+loadStorage();
+buildSelects();
+renderPersonBar();
+generate();
+</script>
+</body>
+</html>
